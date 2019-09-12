@@ -1,0 +1,221 @@
+---
+title: "Assignment3"
+author: "Shruti"
+date: "2/23/2019"
+output: word_document
+---
+library(Metrics)
+
+```{r Question 1}
+mydata<-read.csv("VoterPref.csv")
+#mydata$PREFERENCE <- factor(mydata$Preference,levels=c("For","Against"))
+mydata$PREFERENCE <- ifelse(mydata$PREFERENCE == "Against",1,0)
+set.seed(71923)
+datasplit <- sample(nrow(mydata),0.7*nrow(mydata))
+data.train <- mydata[datasplit,]
+data.test <- mydata[-datasplit,]
+```
+
+```{r Question 2a}
+model<- glm(PREFERENCE ~ AGE+INCOME+GENDER, data = data.train, family = "binomial")
+cutoff<-0.5
+
+#predict the values on  training set
+actual.train<-data.train$PREFERENCE
+predict.train.prob<-predict(model,type='response')
+predict.train<-ifelse(predict.train.prob > cutoff, 1, 0)
+confusion1 <- table(actual.train, predict.train)
+rownames(confusion1) <- c("For","Against")
+colnames(confusion1) <- c("For","Against")
+confusion1
+
+#predict the values on test set
+actual.test<-data.test$PREFERENCE
+predict.test.prob<-predict(model,type='response',newdata = data.test )
+predict.test<-ifelse(predict.test.prob > cutoff, 1, 0)
+confusion2 <- table(actual.test, predict.test)
+rownames(confusion2) <- c("For","Against")
+colnames(confusion2) <- c("For","Against")
+confusion2
+```
+
+```{r Question 2b}
+#Computation of sensitivity, specificity, accuracy, error rate, PPV, NPV
+TrainTP<- sum(predict.train == 1 & actual.train == 1)
+TrainTN<- sum(predict.train == 0 & actual.train == 0)
+TrainFP<- sum(predict.train == 1 & actual.train == 0)
+TrainFN<- sum(predict.train == 0 & actual.train == 1)
+
+
+cat("\nTrain Set")
+accuracy.train <- (TrainTP + TrainTN)/nrow(data.train)
+cat("\nAccuracy :",accuracy.train)
+cat("\nError Rate :",1- accuracy.train)
+sensitivity.train <- TrainTP/(TrainTP+TrainFN)
+cat("\nSensitivity :",sensitivity.train)
+specificity.train <- TrainTN/(TrainTN+TrainFP)
+cat("\nSpecificity :",specificity.train)
+PPV.train <- TrainTP/(TrainTP+TrainFP)
+cat("\nPPV :",PPV.train)
+NPV.train <- TrainTN/(TrainTN+TrainFN)
+cat("\nNPV :",NPV.train )
+
+
+TestTP<- sum(predict.test == 1 & actual.test == 1)
+TestTN<- sum(predict.test== 0 & actual.test  == 0)
+TestFP<- sum(predict.test == 1 & actual.test  == 0)
+TestFN<- sum(predict.test== 0 & actual.test  == 1)
+
+cat("\nTest Set")
+accuracy.test <- (TestTP + TestTN)/nrow(data.test)
+cat("\nAccuracy :",accuracy.test)
+cat("\nError Rate :",1- accuracy.test)
+sensitivity.test <- TestTP/(TestTP+TestFN)
+cat("\nSensitivity :",sensitivity.test)
+specificity.test <- TestTN/(TestTN+TestFP)
+cat("\nSpecificity :",specificity.test)
+PPV.test <- TestTP/(TestTP+TestFP)
+cat("\nPPV :",PPV.test)
+NPV.test <- TestTN/(TestTN+TestFN)
+cat("\nNPV :",NPV.test )
+```
+
+```{r Question 2c}
+
+#ROC for test Set
+cutoffrange <- seq(0, 1, length = 100)
+fpr <- numeric(100)
+tpr <- numeric(100)
+roc.table <- data.frame(Cutoff = cutoffrange, FPR = fpr,TPR = tpr)
+
+for (i in 1:100) {
+  roc.table$FPR[i] <- sum(predict.test.prob > cutoffrange[i] & actual.test == 0)/sum(actual.test == 0)
+  roc.table$TPR[i] <- sum(predict.test.prob > cutoffrange[i] & actual.test == 1)/sum(actual.test == 1)
+}
+
+plot(TPR ~ FPR, data = roc.table, type = "o",xlab="1 - Specificity",ylab="Sensitivity",col="blue",lty=2)
+abline(a = 0, b = 1, lty = 2,col="red")
+
+#ROC curve for train Set
+cutoffrange <- seq(0, 1, length = 100)
+fpr <- numeric(100)
+tpr <- numeric(100)
+#
+for (i in 1:100) {
+  roc.table$FPR[i] <- sum(predict.train.prob> cutoffrange[i] & actual.train == 0)/sum(actual.train == 0)
+  roc.table$TPR[i] <- sum(predict.train.prob > cutoffrange[i] & actual.train == 1)/sum(actual.train == 1)
+}
+lines(TPR~FPR,data = roc.table, type="o",col="green",lty=2)
+```
+
+```{r Question 2d}
+cutoffrange <- seq(0, 1, length = 700)
+accuracy.train <- numeric(700)
+roc.table <- data.frame(Cutoff = cutoffrange, Accuracy = accuracy.train)
+for (i in 1:700) 
+  {
+roc.table$Accuracy[i] <- (sum(predict.train.prob > cutoffrange[i] & actual.train == 1) + sum(predict.train.prob < cutoffrange[i] & actual.train == 0))/700
+  }
+
+plot(Accuracy ~ Cutoff , data = roc.table, type = "o",xlab=" Cutoff",ylab="Accuracy",col="blue",lty=2)
+var<-which.max(roc.table$Accuracy)
+roc.table[var,]
+
+cutoffrange <- seq(0, 1, length = 700)
+accuracy.test <- numeric(700)
+roc.table <- data.frame(Cutoff = cutoffrange, Accuracy = accuracy.test)
+for (i in 1:700) 
+  {
+roc.table$Accuracy[i] <- (sum(predict.test.prob > cutoffrange[i] & actual.test == 1) + sum(predict.test.prob < cutoffrange[i] & actual.test == 0))/700
+  }
+
+plot(Accuracy ~ Cutoff , data = roc.table, type = "o",xlab="Cutoff",ylab="Accuracy",col="blue",lty=2)
+roc.table[var,]
+
+q<-roc.table[var,]$Cutoff
+q
+actual.train<-data.train$PREFERENCE
+predict.train.prob<-predict(model,type='response')
+predict.train<-ifelse(predict.train.prob > q, 1, 0)
+confusion3 <- table(actual.train, predict.train)
+confusion3
+# library(ROCR)
+# #Training Set
+# pred <- prediction(predict.train.prob, actual.train)
+# perf <- performance( pred, "tpr", "fpr" )
+# perf.acc <- performance( pred, "acc")
+# plot( perf , show.spread.at=seq(0, 1, by=0.1), col="red")
+# 
+# #Test Set
+# pred <- prediction(predict.test.prob, actual.test)
+# perf.tpr.fpr <- performance( pred, "tpr", "fpr" )
+# perf.acc <- performance( pred, "acc")
+# plot( perf , show.spread.at=seq(0, 1, by=0.1), col="red")
+```
+
+
+
+```{r Question 4}
+#training Data Lift Chart
+actual.train<-data.train$PREFERENCE
+predict.train.prob<-predict(model,type='response')
+df1 <- data.frame(predict.train.prob,actual.train)
+df1S <- df1[order(-predict.train.prob),]
+df1S$Gains <- cumsum(df1S$actual.train)
+plot(df1S$Gains,type="n",main="Training Data Gains Chart",xlab="Number of Cases",ylab="Cumulative Success")
+lines(df1S$Gains)
+abline(0,sum(df1S$actual.train)/nrow(df1S),lty = 2, col="red")
+#
+# Now the validation data gains chart
+actual.test<-data.test$PREFERENCE
+predict.test.prob<-predict(model,type='response', newdata = data.test)
+df2 <- data.frame(predict.test.prob,actual.test)
+df2S <- df2[order(-predict.test.prob),]
+df2S$Gains <- cumsum(df2S$actual.test)
+plot(df2S$Gains,type="n",main="Test Data Gains Chart",xlab="Number of Cases",ylab="Cumulative Success")
+lines(df2S$Gains)
+abline(0,sum(df2S$actual.test)/nrow(df1S),lty = 2, col="red")
+```
+
+```{r Question 5}
+#training Data Lift Chart
+library("data.table")
+decile_Lift <- function(df) 
+{
+  df <- df[order(-df$predicted.probability),]
+  df$roworder <- 1:nrow(df)
+  baseline <- sum(df$actual.train) / 10
+  df$decile <- ceiling((df$roworder/nrow(df)) * 10)
+  dt <- data.table(df)
+  dt <- dt[, sum(actual.train), by = decile]
+  dt$baseline <- baseline
+  barplot(t(data.frame(dt$V1,dt$baseline)), main="Decile wise comparision of successes", xlab="Deciles",    col=c("darkblue","red"), beside=TRUE, names=dt$decile)
+  barplot(t(data.frame(dt$V1)/data.frame(dt$baseline)), main="Decile wise comparision of successes", xlab="Deciles", col=c("darkblue"), beside=TRUE, names=dt$decile)
+}
+actual.train<-data.train$PREFERENCE
+predicted.probability<-predict(model,type='response')
+df.train <- data.frame(predicted.probability,actual.train)
+decile_Lift(df.train)
+
+
+decile_Lift <- function(df) 
+{
+  df <- df[order(-df$predicted.probability),]
+  df$roworder <- 1:nrow(df)
+  baseline <- sum(df$actual.test) / 10
+  df$decile <- ceiling((df$roworder/nrow(df)) * 10)
+  dt <- data.table(df)
+  dt <- dt[, sum(actual.test), by = decile]
+  dt$baseline <- baseline
+  barplot(t(data.frame(dt$V1,dt$baseline)), main="Decile wise comparision of successes", xlab="Deciles",    col=c("darkblue","red"), beside=TRUE, names=dt$decile)
+  barplot(t(data.frame(dt$V1)/data.frame(dt$baseline)), main="Decile wise comparision of successes", xlab="Deciles", col=c("darkblue"), beside=TRUE, names=dt$decile)
+}
+actual.test<-data.test$PREFERENCE
+predicted.probability<-predict(model,type='response', newdata = data.test)
+df.test <- data.frame(predicted.probability,actual.test)
+decile_Lift(df.test)
+
+```
+
+
+

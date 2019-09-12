@@ -1,0 +1,339 @@
+---
+title: "Assignment4"
+author: "Shruti"
+date: "3/2/2019"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r 1a}
+library(dplyr)
+library(neuralnet)
+data<-read.csv('Airline Data V2.csv')
+#removing unwanted columns
+data<-data %>% select(-S_CODE,-E_CODE,-E_CITY,-S_CITY)
+str(data)
+#data2<-as.data.frame(sapply(data,as.numeric()))
+#str(data2)
+```
+
+```{r 1b}
+data$VACATION <- as.numeric(data$VACATION)-1
+data$SW <- as.numeric(data$SW)-1
+data$SLOT <- as.numeric(data$SLOT)-1
+data$GATE <- as.numeric(data$GATE)-1
+str(data)
+```
+
+```{r 1c,d}
+data<-na.omit(data)
+#str(data)
+maxs<-apply(data,2,max)
+#maxs
+mins<-apply(data,2,min)
+#mins
+data <- as.data.frame(scale(data, center = mins, scale = maxs - mins))
+head(data)
+str(data)
+```
+
+```{r 1d,e}
+set.seed(71923)
+str(data)
+
+sample_data <- sample(nrow(data), nrow(data)*0.6)
+data.train <- data[sample_data,]
+data.test <- data[-sample_data,]
+
+nrow(data.train)
+nrow(data.test)
+```
+
+```{r 2a Exhibit A}
+#ran w/o dist
+model<- glm(SW~VACATION+SLOT+FARE+DISTANCE+HI+GATE+PAX, data=data.train, family="binomial")
+summary(model)
+```
+
+```{r 2b - classification}
+cutoff<-0.5
+
+#predict the values on  training set
+actual.train<-data.train$SW
+predict.train.prob<-predict(model,type='response')
+predict.train<-ifelse(predict.train.prob > cutoff, 1, 0)
+confusion1 <- table(actual.train, predict.train)
+rownames(confusion1) <- c("For","Against")
+colnames(confusion1) <- c("For","Against")
+confusion1
+
+#predict the values on test set
+actual.test<-data.test$SW
+predict.test.prob<-predict(model,type='response',newdata = data.test )
+predict.test<-ifelse(predict.test.prob > cutoff, 1, 0)
+confusion2 <- table(actual.test, predict.test)
+rownames(confusion2) <- c("For","Against")
+colnames(confusion2) <- c("For","Against")
+confusion2
+```
+
+```{r 2b - Error Rates}
+TrainTP<- sum(predict.train == 1 & actual.train == 1)
+TrainTN<- sum(predict.train == 0 & actual.train == 0)
+TrainFP<- sum(predict.train == 1 & actual.train == 0)
+TrainFN<- sum(predict.train == 0 & actual.train == 1)
+
+
+cat("\nTrain Set")
+accuracy.train <- (TrainTP + TrainTN)/nrow(data.train)
+cat("\nAccuracy :",accuracy.train)
+cat("\nError Rate :",1- accuracy.train)
+sensitivity.train <- TrainTP/(TrainTP+TrainFN)
+cat("\nSensitivity :",sensitivity.train)
+specificity.train <- TrainTN/(TrainTN+TrainFP)
+cat("\nSpecificity :",specificity.train)
+
+TestTP<- sum(predict.test == 1 & actual.test == 1)
+TestTN<- sum(predict.test== 0 & actual.test  == 0)
+TestFP<- sum(predict.test == 1 & actual.test  == 0)
+TestFN<- sum(predict.test== 0 & actual.test  == 1)
+
+cat("\nTest Set")
+accuracy.test <- (TestTP + TestTN)/nrow(data.test)
+cat("\nAccuracy :",accuracy.test)
+cat("\nError Rate :",1- accuracy.test)
+sensitivity.test <- TestTP/(TestTP+TestFN)
+cat("\nSensitivity :",sensitivity.test)
+specificity.test <- TestTN/(TestTN+TestFP)
+cat("\nSpecificity :",specificity.test)
+```
+
+```{r 3a Exhibit B}
+set.seed(13)
+nn <- neuralnet(SW ~ VACATION+SLOT+DISTANCE+FARE+HI+GATE+PAX, data = data.train, hidden=c(4), err.fct = "ce", linear.output = F)
+plot(nn)
+```
+
+
+```{r 3b confusion matrix}
+#so since this is for a categorical variable we need to do this in the way tis done in class nots, not in the unscaling way
+library(nnet)
+library(neuralnet)
+
+#didnt get this part of code sec and fourth line, and confusion table is not being created
+
+actual.nn.train<-data.train$SW
+train.predprobnn<-predict(nn,data.train)
+train.predicted<-ifelse(train.predprobnn>0.5,1,0)
+confusion3<-table(actual.nn.train,train.predicted)
+confusion3
+
+actual.nn.test<-data.test$SW
+test.predprobnn<-predict(nn,data.test)
+test.predicted<-ifelse(test.predprobnn>0.5,1,0)
+confusion4<-table(actual.nn.test,test.predicted)
+confusion4
+```
+
+```{r 3b}
+TrainTP<- sum(train.predicted == 1 & actual.nn.train == 1)
+TrainTN<- sum(train.predicted == 0 & actual.nn.train == 0)
+TrainFP<- sum(train.predicted == 1 & actual.nn.train == 0)
+TrainFN<- sum(train.predicted == 0 & actual.nn.train == 1)
+
+
+cat("\nTrain Set")
+accuracy.train <- (TrainTP + TrainTN)/nrow(data.train)
+cat("\nAccuracy :",accuracy.train)
+cat("\nError Rate :",1- accuracy.train)
+sensitivity.train <- TrainTP/(TrainTP+TrainFN)
+cat("\nSensitivity :",sensitivity.train)
+specificity.train <- TrainTN/(TrainTN+TrainFP)
+cat("\nSpecificity :",specificity.train)
+
+TestTP<- sum(test.predicted == 1 & actual.nn.test  == 1)
+TestTN<- sum(test.predicted == 0 & actual.nn.test  == 0)
+TestFP<- sum(test.predicted == 1 & actual.nn.test  == 0)
+TestFN<- sum(test.predicted == 0 & actual.nn.test  == 1)
+
+cat("\nTest Set")
+accuracy.test <- (TestTP + TestTN)/nrow(data.test)
+cat("\nAccuracy :",accuracy.test)
+cat("\nError Rate :",1- accuracy.test)
+sensitivity.test <- TestTP/(TestTP+TestFN)
+cat("\nSensitivity :",sensitivity.test)
+specificity.test <- TestTN/(TestTN+TestFP)
+cat("\nSpecificity :",specificity.test)
+```
+
+```{r 4a}
+set.seed(13)
+train_errors = vector(length = 7)
+test_errors = vector(length = 7)
+for (i in 0:7)
+{
+nn <- neuralnet(SW ~ VACATION+SLOT+DISTANCE+FARE+HI+GATE+PAX, data = data.train, hidden=i, err.fct = "ce", linear.output = F, lifesign = "minimal", stepmax = 1000000, threshold = 0.1)
+
+actual.nn.train<-data.train$SW
+train.predprobnn<-predict(nn,data.train)
+train.predicted<-ifelse(train.predprobnn>0.5,1,0)
+TrainTP<- sum(train.predicted == 1 & actual.nn.train == 1)
+TrainTN<- sum(train.predicted == 0 & actual.nn.train == 0)
+accuracy.train <- (TrainTP + TrainTN)/nrow(data.train)
+cat("\nError Rate :",1- accuracy.train)
+train_errors[i] = 1- accuracy.train
+
+actual.nn.test<-data.test$SW
+test.predprobnn<-predict(nn,data.test)
+test.predicted<-ifelse(test.predprobnn>0.5,1,0)
+TestTP<- sum(test.predicted == 1 & actual.nn.test == 1)
+TestTN<- sum(test.predicted == 0 & actual.nn.test == 0)
+accuracy.test <- (TestTP + TestTN)/nrow(data.test)
+cat("\nError Rate :",1- accuracy.test)
+test_errors[i] = 1- accuracy.test
+}
+
+final_errors <- cbind(train_errors,test_errors)
+print(final_errors)
+```
+
+```{r 4b}
+set.seed(13)
+train_errors1 = vector(length = 4)
+test_errors1 = vector(length = 4)
+
+for (p in 1:4)
+{
+nn <- neuralnet(SW ~ VACATION+SLOT+DISTANCE+FARE+HI+GATE+PAX, data = data.train, hidden=c(4,p), err.fct = "ce", linear.output = F, lifesign = "minimal", stepmax = 1000000, threshold = 0.1)
+  
+actual.nn.train<-data.train$SW
+train.predprobnn<-predict(nn,data.train)
+train.predicted<-ifelse(train.predprobnn>0.5,1,0)
+TrainTP<- sum(train.predicted == 1 & actual.nn.train == 1)
+TrainTN<- sum(train.predicted == 0 & actual.nn.train == 0)
+accuracy.train <- (TrainTP + TrainTN)/nrow(data.train)
+cat("\nError Rate :",1- accuracy.train)
+train_errors1[p] = 1- accuracy.train
+
+actual.nn.test<-data.test$SW
+test.predprobnn<-predict(nn,data.test)
+test.predicted<-ifelse(test.predprobnn>0.5,1,0)
+TestTP<- sum(test.predicted == 1 & actual.nn.test == 1)
+TestTN<- sum(test.predicted == 0 & actual.nn.test == 0)
+accuracy.test <- (TestTP + TestTN)/nrow(data.test)
+cat("\nError Rate :",1- accuracy.test)
+test_errors1[p] = 1- accuracy.test
+}
+
+```
+
+```{r 4e}
+set.seed(13)
+cutoffrange <- seq(0, 1, length = 700)
+fpr<-numeric(700)
+tpr<-numeric(700)
+
+#best model
+nn <- neuralnet(SW ~ VACATION+SLOT+DISTANCE+FARE+HI+GATE+PAX, data = data.train, hidden=7, rep = 2, err.fct = "ce", linear.output = F, lifesign = "minimal", stepmax = 1000000, threshold = 0.1)
+
+actual.test<-data.test$SW
+test.predprobnn<-predict(nn,data.test)
+
+roc.table <- data.frame(Cutoff = cutoffrange, FPR = fpr, TPR=tpr)
+
+for (i in 1:700) 
+{
+roc.table$FPR[i] <- (sum(test.predprobnn>cutoffrange[i] & actual.test==0)/sum(actual.test==0))
+roc.table$TPR[i] <- (sum(test.predprobnn>cutoffrange[i] & actual.test==1)/sum(actual.test==1))
+}
+
+fpr1<-numeric(700)
+tpr1<-numeric(700)
+cutoffrange1 <- seq(0, 1, length = 700)
+roc.table1 <- data.frame(Cutoff = cutoffrange1, FPR = fpr1, TPR=tpr1)
+for (i in 1:700) 
+{
+roc.table1$FPR[i] <- (sum(predict.test.prob>cutoffrange1[i] & actual.test==0)/sum(actual.test==0))
+roc.table1$TPR[i] <- (sum(predict.test.prob>cutoffrange1[i] & actual.test==1)/sum(actual.test==1))
+}
+
+plot(TPR~FPR, data = roc.table, type="o", xlab="1-Specifity", ylab="Senstivity", main="ROC Curve for Neural and Logisitc", col="blue") + abline(a=0,b=1,lty=2,col="red")
+lines(TPR~FPR,data= roc.table1, type="o", col="green")
+legend(0.7,0.4,pch=c(1,1), col=c("blue","green"), c("Neural","Logistic"), bty="o",cex=0.8)
+```
+
+```{r 5a}
+set.seed(13)
+model<- lm(FARE~ SW+VACATION+SLOT+DISTANCE+HI+GATE+PAX, data = data.train)
+summary(model)
+train.residuals <- model$residuals
+trainRMSE <- sqrt(mean((train.residuals)^2))
+trainRMSE
+
+predicted <- predict(model,newdata=data.test)
+actual <- data.test$FARE
+testRMSE <- sqrt(mean((actual - predicted)^2))
+testRMSE
+```
+
+```{r 5b,c}
+library(Metrics)
+#library(nn)
+library(neuralnet)
+nn <- neuralnet(FARE~ SW+VACATION+SLOT+DISTANCE+HI+GATE+PAX,data = data.train, hidden = c(4), linear.output = TRUE)
+plot(nn)
+
+train.predprobnn<-predict(nn,data.train)
+(rmse(data.train$FARE,train.predprobnn))
+
+test.predprobnn<-predict(nn,data.test)
+(rmse(data.test$FARE,test.predprobnn))
+```
+
+```{r 5d 4(a)}
+trainRMSE_NN_vector= vector(length = 7)
+testRMSE_NN_vector = vector(length = 7)
+
+for (i in 0:7)
+{
+nn <- neuralnet(FARE~ SW+VACATION+SLOT+DISTANCE+HI+GATE+PAX,data = data.train, hidden = i, linear.output = TRUE)
+
+
+train.predprobnn<-predict(nn,data.train)
+trainRMSE_NN_vector[i] <- rmse(data.train$FARE,train.predprobnn)
+
+test.predprobnn<-predict(nn,data.test)
+testRMSE_NN_vector[i] <-  rmse(data.test$FARE,test.predprobnn)
+}
+
+final_errors3 <- cbind(trainRMSE_NN_vector,testRMSE_NN_vector)
+print(final_errors3)
+
+```
+
+```{r 5d 4(b)}
+trainRMSE_NN_vector1 = vector(length = 4)
+testRMSE_NN_vector1 = vector(length = 4)
+
+for (i in 1:5)
+{
+nn <- neuralnet(FARE~ SW+VACATION+SLOT+DISTANCE+HI+GATE+PAX,data = data.train, hidden = c(4,i), linear.output = TRUE)
+plot(nn)
+
+train.predprobnn<-predict(nn,data.train)
+trainRMSE_NN_vector1[i] <-rmse(data.train$FARE,train.predprobnn)
+
+test.predprobnn<-predict(nn,data.test)
+testRMSE_NN_vector1[i] <- rmse(data.test$FARE,test.predprobnn)
+}
+
+final_errors4 <- cbind(trainRMSE_NN_vector1,testRMSE_NN_vector1)
+print(final_errors4)
+```
+
+
+
+
+

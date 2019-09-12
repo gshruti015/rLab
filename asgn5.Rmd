@@ -1,0 +1,295 @@
+---
+title: "Assignment5"
+author: "Shruti"
+date: "3/24/2019"
+output: word_document
+---
+
+
+```{r, echo = TRUE Question 2}
+setwd("~/Desktop/Sem2/Data MIning - Kislay Prasad/Assignment5")
+df <- read.csv("credit3 (2).csv")
+df$ProfitableAccount <- ifelse(df$NPV > 0, 1, 0)
+```
+
+```{r, echo = TRUE Question 3}
+set.seed(12345)
+
+library(fastDummies)
+df <- dummy_cols(df, select_columns =c("CHK_ACCT","SAV_ACCT","HISTORY","JOB","TYPE"))
+df$CHK_ACCT<-NULL
+df$SAV_ACCT<-NULL
+df$HISTORY<-NULL
+df$JOB<-NULL
+df$TYPE<-NULL
+df$NPV<-NULL
+df$OBS.<-NULL
+df$AMOUNT_REQUESTED <- as.numeric(df$AMOUNT_REQUESTED)
+df$CREDIT_EXTENDED <- as.numeric(df$CREDIT_EXTENDED)
+
+funct <- function(x){ 
+  a <- mean(x) 
+  b <- sd(x) 
+  (x - a) / (b) 
+} 
+
+df[, 2:16] <- apply(df[, 2:16], 2, funct)
+df[, 18:42] <- apply(df[, 18:42], 2, funct)
+
+split<-sample(nrow(df),0.7*nrow(df))
+train<-df[split,]
+test<-df[-split,]
+```
+
+
+```{r, echo = TRUE Question 4}
+
+library(class)
+train_input <- as.matrix(train[,-17])
+train_output <- as.vector(train[,17])
+test_input <- as.matrix(test[,-17])
+test_output <- as.vector(test[,17])
+
+
+kmax <- 15
+ER1 <- rep(0,kmax)
+ER2 <- rep(0,kmax)
+#
+for (i in 1:kmax){
+
+  prediction <- knn(train_input, train_input, train_output, k=i)
+  prediction2 <- knn(train_input, test_input, train_output, k=i)
+
+  ER1[i] <- (1 - (sum(prediction == train_output)/nrow(train))) * 100
+  ER2[i] <- (1 - (sum(prediction2 == test_output)/nrow(test))) * 100
+}
+```
+
+
+```{r, echo = TRUE Question 5}
+knn_errors <- data.frame(k = 1:kmax, TrainError = ER1, TestError = ER2)
+knn_errors
+
+plot(TrainError ~ k, data = knn_errors, xlab = "k", ylab = "Error Percentage", type = "l", col = "blue", lty = 4, ylim = c(0, 31), main = "Training and Validation Error for kNN")
+lines(TestError ~ k, data = knn_errors, type = "l", col = "red", lty = 2)
+
+legend("bottomright", 
+  legend = c("Training Error", "Validation Error"), 
+  col = c("blue","red"),
+  lty = c(4,2)
+ )
+```
+
+```{r, echo = TRUE Question 6}
+Actual <- test_output
+Predicted <- knn(train_input, test_input, train_output, k = 11)
+
+Predicted_prob <- knn(train_input, test_input, train_output, k = 11, prob = TRUE)
+KNNpred_prob <- attr(Predicted_prob, "prob")
+
+```
+
+```{r, echo = TRUE Question 6}
+prediction <- knn(train_input, test_input, train_output, k=y)
+CM <- table(test$ProfitableAccount, prediction)
+CM
+ERClass0 <- (CM[1,2])/(CM[1,1]+CM[1,2])
+ERClass1 <- (CM[2,1])/(CM[2,1]+CM[2,2])
+ERClass0
+ERClass1
+```
+
+
+```{r, echo = TRUE Question 7}
+z <- rep(0,10)
+for (i in 1:10)
+  {
+  set.seed(i)
+  ER1<-rep(0,15)
+  ER2<-rep(0,15)
+  for(k in 1:kmax)
+  {
+  prediction <- knn(train_input, train_input, train_output, k=i)
+  prediction2 <- knn(train_input, test_input, train_output, k=i)
+  CM1 <- table(prediction, train$ProfitableAccount)
+  ER1[k] <- (CM1[1,2]+CM1[2,1])/sum(CM1)
+  CM2 <- table(prediction2, test$ProfitableAccount)
+  ER2[k] <- (CM2[1,2]+CM2[2,1])/sum(CM2)
+  }
+  z[i] <- which.min(ER2)
+}
+cat("\n Best k values :", z)
+
+```
+
+```{r, echo = TRUE Question 8, 9}
+library(class)
+library(dplyr)
+library(e1071)
+
+setwd("~/Desktop/Sem2/Data MIning - Kislay Prasad/Assignment5")
+dfnew <- read.csv("credit3 (2).csv")
+dfnew$Profitable <- ifelse(dfnew$NPV > 0, 1, 0)
+dfnew$NPV <- NULL
+dfnew$CREDIT_EXTENDED <- NULL
+dfnew$OBS. <- NULL
+dfnew$AMOUNT_REQUESTED <- gsub("[,]", "", dfnew$AMOUNT_REQUESTED)
+dfnew$AMOUNT_REQUESTED <- as.numeric(dfnew$AMOUNT_REQUESTED)
+
+dfnew$CHK_ACCT <- factor(dfnew$CHK_ACCT)
+dfnew$SAV_ACCT <- factor(dfnew$SAV_ACCT)
+dfnew$NUM_CREDITS <- factor(dfnew$NUM_CREDITS)
+dfnew$HISTORY <- factor(dfnew$HISTORY)
+dfnew$PRESENT_RESIDENT <- factor(dfnew$PRESENT_RESIDENT)
+dfnew$EMPLOYMENT <- factor(dfnew$EMPLOYMENT)
+dfnew$JOB <- factor(dfnew$JOB)
+dfnew$NUM_DEPENDENTS <- factor(dfnew$NUM_DEPENDENTS)
+dfnew$RENT <- factor(dfnew$RENT)
+dfnew$INSTALL_RATE <- factor(dfnew$INSTALL_RATE)
+dfnew$GUARANTOR <- factor(dfnew$GUARANTOR)
+dfnew$OTHER_INSTALL <- factor(dfnew$OTHER_INSTALL)
+dfnew$OWN_RES <- factor(dfnew$OWN_RES)
+dfnew$TELEPHONE <- factor(dfnew$TELEPHONE)
+dfnew$FOREIGN <- factor(dfnew$FOREIGN)
+dfnew$REAL_ESTATE <- factor(dfnew$REAL_ESTATE)
+dfnew$TYPE <- factor(dfnew$TYPE)
+dfnew$Profitable <- factor(dfnew$Profitable)
+
+tempdata<-dfnew
+```
+
+```{r, echo = TRUE Question 10}
+library("caret")
+set.seed(12345)
+
+splitdata <- sample(nrow(dfnew), 0.7 * nrow(dfnew))
+dftrain <- dfnew[splitdata,]
+dftest <- dfnew[-splitdata,]
+
+(prop0 <- sum(dftrain$Profit==0)/length(dftrain$Profit))
+(prop1 <- sum(dftrain$Profit==1)/length(dftrain$Profit))
+(emv = prop0*-1500+prop1*500)
+```
+
+```{r, echo = TRUE Question 11}
+library(e1071)
+
+nb_model <- naiveBayes(Profitable~.-Profitable, data = dftrain)
+pred <- predict(nb_model, newdata = dftest[,-21])
+model
+(table(dftest$Profitable, pred))
+
+NBpred_prob <- predict(nb_model, newdata = dftest[,-22], type = "raw")
+head(NBpred_prob)
+```
+
+```{r, echo = TRUE}
+#11
+data <- data.frame(
+  AGE = 27, 
+  CHK_ACCT= as.factor(1), 
+  SAV_ACCT= as.factor(4),
+  NUM_CREDITS = as.factor(1),
+  HISTORY= as.factor(2),
+  PRESENT_RESIDENT = as.factor(4),
+  EMPLOYMENT = as.factor(1),
+  JOB = as.factor(2),
+  NUM_DEPENDENTS = as.factor(1),
+  GUARANTOR = as.factor(0),
+  INSTALL_RATE = as.factor(3),
+  OTHER_INSTALL = as.factor(0),
+  TYPE= as.factor(2),
+  AMOUNT_REQUESTED = 4500,
+  TELEPHONE = as.factor(1),
+  DURATION = 12,
+  REAL_ESTATE=as.factor(0),
+  FOREIGN=as.factor(0),
+  OWN_RES=as.factor(0),
+  RENT=as.factor(1))
+
+pred <- predict(nb_model, newdata = data, type="raw")
+pred
+
+```
+
+```{r, echo = TRUE Question 13}
+dfnew1 <- tempdata
+
+dfnew1$CHK_ACCT <- factor(dfnew1$CHK_ACCT)
+dfnew1$SAV_ACCT <- factor(dfnew1$SAV_ACCT)
+dfnew1$HISTORY <- factor(dfnew1$HISTORY)
+dfnew1$JOB <- factor(dfnew1$JOB)
+dfnew1$TYPE <- factor(dfnew1$TYPE)
+
+head(dfnew1)
+
+LRtrain <- dfnew1[splitdata,]
+LRtest <- dfnew1[-splitdata,]
+
+LRmodel <- glm(Profitable ~ AGE + CHK_ACCT + SAV_ACCT + NUM_CREDITS + DURATION + HISTORY + PRESENT_RESIDENT + EMPLOYMENT + JOB + NUM_DEPENDENTS + RENT + INSTALL_RATE + GUARANTOR + OTHER_INSTALL + OWN_RES + TELEPHONE + FOREIGN + REAL_ESTATE + TYPE + AMOUNT_REQUESTED, data = LRtrain, family = "binomial")
+
+summary(LRmodel)
+```
+
+```{r, echo = TRUE Question 13}
+LRprob <- predict(LRmodel,newdata = LRtest, type = "response")
+LRpred <- ifelse(LRprob > 0.5, 1, 0)
+table(LRtest$Profitable, LRpred)
+```
+```{r, echo = TRUE Question 13}
+
+cutoff <- seq(0, 1, length = 100)
+KNNtpr <- seq(0, 0, length = 100)
+KNNfpr <- seq(0, 0, length = 100)
+NBtpr <- seq(0, 0, length = 100)
+NBfpr <- seq(0, 0, length = 100)
+LRtpr <- seq(0, 0, length = 100)
+LRfpr <- seq(0, 0, length = 100)
+
+for (i in 1:100)
+{
+  #knn
+  KNNtpr[i] <- sum((KNNpred_prob > cutoff[i]) & (test_output == 1))/sum(test_output == 1)
+  KNNfpr[i] <- sum((KNNpred_prob > cutoff[i]) & (test_output == 0))/sum(test_output == 0)
+  
+  #naive bayes
+  NBtpr[i] <- sum((NBpred_prob[,2] > cutoff[i]) & (as.numeric(dftest$Profitable)-1 == 1))/sum(as.numeric(dftest$Profitable)-1 == 1)
+  NBfpr[i] <- sum((NBpred_prob[,2] > cutoff[i]) & (as.numeric(dftest$Profitable)-1 == 0))/sum(as.numeric(dftest$Profitable)-1 == 0)
+  
+  #logistic
+  LRtpr[i] <- sum((LRprob > cutoff[i]) & (LRtest$Profitable == 1))/sum(LRtest$Profitable == 1)
+  LRfpr[i] <- sum((LRprob > cutoff[i]) & (LRtest$Profitable == 0))/sum(LRtest$Profitable == 0)
+}
+
+dfROC <- data.frame(Cutoff = cutoff, knnTPR = KNNtpr, knnFPR = KNNfpr, nbTPR = NBtpr, nbFPR = NBfpr, lgstTPR = LRtpr, lgstFPR = LRfpr)
+```
+
+```{r}
+plot(knnTPR ~ knnFPR, data = dfROC, xlab = "1 - Sensitivity", ylab = "Specificity", type = "l", col = "orange", lty = 2, main = "ROC Curves")
+lines(lgstTPR ~ lgstFPR, data = dfROC, type = "l", col = "purple", lty = 2)
+lines(nbTPR ~ nbFPR, data = dfROC, type = "l", col = "blue", lty = 2)
+
+legend("bottomright", 
+  legend = c("KNN","LogisticRegression", "NaiveBayes"), 
+  col = c("orange","purple","blue"),
+  lty = 2
+ )
+```
+
+```{r}
+
+library(ROCR)
+
+knn_pred <- prediction(KNNpred_prob, test_output)
+nb_pred <- prediction(NBpred_prob[,2], (as.numeric(dftest$Profitable)-1))
+lgst_pred <- prediction(LRprob, LRtest$Profitable)
+
+knn_area <- performance(knn_pred, measure = "auc")
+nb_area <- performance(nb_pred, measure = "auc")
+lgst_area <- performance(lgst_pred, measure = "auc")
+
+print(knn_area@y.values)
+print(nb_area@y.values)
+print(lgst_area@y.values)
+
+```

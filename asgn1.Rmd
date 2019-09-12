@@ -1,0 +1,66 @@
+---
+title: "HW1"
+author: "Shruti"
+date: "Thursday, January 19, 2017"
+output: word_document
+---
+
+
+```{r}
+df <- read.csv("Airline Data V2.csv")
+df$FARE <- as.numeric(sub('$','',as.character(df$FARE),fixed=TRUE))
+df$S_INCOME <- sub(',','',as.character(df$S_INCOME),fixed=TRUE)
+df$S_INCOME <- as.numeric(sub('$','',as.character(df$S_INCOME),fixed=TRUE))
+df$E_INCOME <- sub(',','',as.character(df$E_INCOME),fixed=TRUE)
+df$E_INCOME <- as.numeric(sub('$','',as.character(df$E_INCOME),fixed=TRUE))
+#
+fit1 <- lm(FARE~COUPON+NEW+VACATION+SW+HI+S_INCOME+E_INCOME+S_POP+E_POP+SLOT+GATE+DISTANCE+PAX, data=df)
+summary(fit1)
+newdata <- data.frame(COUPON = c(1), NEW = c(3), VACATION = c("No"), SW = c("No"), HI =c(6000), S_INCOME = c(2000), E_INCOME = c(2000), S_POP = c(4000000), E_POP=c(7150000), SLOT=c("Free"), GATE = c("Constrained"), DISTANCE = c(1000), PAX = c(6000))
+pred<-predict(fit1,newdata)
+pred
+```
+
+
+```{r}
+pairs(df[c(9, 16:18)])
+plot(df$DISTANCE,df$FARE, col=df$SW)
+#
+# The following graph is preferable for obvious reasons
+plot(df$DISTANCE, df$FARE, xlab="Distance (in miles)", ylab="Fare (in USD)",main="SW vs non-SW Routes", pch=1, col=ifelse(df$SW=="Yes", "red", "blue"))
+legend(80, 400, pch=c(1,1), col=c("red", "blue"), c("SW", "non-SW"), bty="o",  box.col="darkgreen", cex=.8)
+```
+
+```{r kable}
+x <- cor(df[c(5:6, 9:13, 16:18)], use="complete.obs")
+x
+library(knitr)
+kable(x,digits=2)
+#
+```
+
+```{r}
+fit2 <- lm(FARE~SW,data=df)
+summary(fit2)
+#
+# Again there are options for better formatting
+kable(summary(fit2)$coef, digits=2)
+#
+fit3 <- lm(FARE~COUPON+NEW+VACATION+SW+HI+S_INCOME+E_INCOME+S_POP+E_POP+SLOT+GATE+DISTANCE+PAX+SW*VACATION, data=df)
+summary(fit3)
+#
+library(xtable)
+kable(xtable(fit3))
+```
+
+```{r}
+#
+fit4 <- lm(FARE~VACATION+SW+HI+DISTANCE+PAX+S_INCOME+E_INCOME+S_POP+E_POP, data=df)
+summary(fit4)
+#
+fit5 <- lm(FARE~VACATION+SW+HI+DISTANCE+PAX+S_POP+E_POP, data=df)
+summary(fit5)
+#
+```
+
+

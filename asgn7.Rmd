@@ -1,0 +1,154 @@
+---
+title: "Assignmnet7"
+author: "Shruti"
+date: "4/18/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+credit<-read.csv('credit3 (2).csv')
+
+names(credit)
+
+credit$AMOUNT_REQUESTED <- as.numeric(credit$AMOUNT_REQUESTED)
+credit$NPV <- as.numeric(credit$NPV)
+credit$PROFITABLE <- as.factor(ifelse(credit$NPV>0,1,0))
+#
+credit$CHK_ACCT_0 <- factor(ifelse(credit$CHK_ACCT==0,1,0))
+credit$CHK_ACCT_1 <- factor(ifelse(credit$CHK_ACCT==1,1,0))
+credit$CHK_ACCT_2 <- factor(ifelse(credit$CHK_ACCT==2,1,0))
+credit$CHK_ACCT_3 <- factor(ifelse(credit$CHK_ACCT==3,1,0))
+#
+credit$SAV_ACCT_0 <- factor(ifelse(credit$SAV_ACCT==0,1,0))
+credit$SAV_ACCT_1 <- factor(ifelse(credit$SAV_ACCT==1,1,0))
+credit$SAV_ACCT_2 <- factor(ifelse(credit$SAV_ACCT==2,1,0))
+credit$SAV_ACCT_3 <- factor(ifelse(credit$SAV_ACCT==3,1,0))
+credit$SAV_ACCT_4 <- factor(ifelse(credit$SAV_ACCT==4,1,0))
+#
+credit$HISTORY_0 <- factor(ifelse(credit$HISTORY==0,1,0))
+credit$HISTORY_1 <- factor(ifelse(credit$HISTORY==1,1,0))
+credit$HISTORY_2 <- factor(ifelse(credit$HISTORY==2,1,0))
+credit$HISTORY_3 <- factor(ifelse(credit$HISTORY==3,1,0))
+credit$HISTORY_4 <- factor(ifelse(credit$HISTORY==4,1,0))
+#
+credit$JOB_0 <- factor(ifelse(credit$JOB==0,1,0))
+credit$JOB_1 <- factor(ifelse(credit$JOB==1,1,0))
+credit$JOB_2 <- factor(ifelse(credit$JOB==2,1,0))
+credit$JOB_3 <- factor(ifelse(credit$JOB==3,1,0))
+#
+credit$TYPE_0 <- factor(ifelse(credit$TYPE==0,1,0))
+credit$TYPE_1 <- factor(ifelse(credit$TYPE==1,1,0))
+credit$TYPE_2 <- factor(ifelse(credit$TYPE==2,1,0))
+credit$TYPE_3 <- factor(ifelse(credit$TYPE==3,1,0))
+credit$TYPE_4 <- factor(ifelse(credit$TYPE==4,1,0))
+credit$TYPE_5 <- factor(ifelse(credit$TYPE==5,1,0))
+credit$TYPE_6 <- factor(ifelse(credit$TYPE==6,1,0))
+
+#
+credit$CREDIT_EXTENDED <- NULL
+credit$OBS. <- NULL
+credit$CHK_ACCT <- NULL
+credit$SAV_ACCT <- NULL
+credit$HISTORY <- NULL
+credit$JOB <- NULL
+credit$TYPE <- NULL
+credit$NPV <- factor(credit$NPV)
+#
+str(credit)
+```
+
+```{r setup, include=FALSE}
+set.seed(12345)
+km <- kmeans(credit[,c(-16,-17)],5,nstart=20)
+print(km)
+dist(km$centers)
+```
+
+```{r setup, include=FALSE}
+credit_NPV<-credit$NPV
+credit_cluster<-km$cluster
+comp<-as.data.frame(cbind(credit_NPV,credit_cluster))
+comp
+
+#bar plot
+counts <- table(km$cluster)
+counts_df<-as.data.frame(counts)
+counts_df$per<-counts_df$Freq/1000
+pal <- colorRampPalette(colors = c("lightblue", "blue"))(5)
+barplot(counts_df$per, main="NPV Cluster Distribution", xlab="Number of People in Each Cluster",legend = rownames(counts_df$per), col = pal)
+
+#avg of npv table
+avg_NPV<- aggregate(comp$credit_NPV, by=list(credit_cluster), FUN = mean)
+avg_NPV
+
+#km of diff values 
+km4 <- kmeans(credit[,c(-16,-17)],4,nstart=20)
+km4
+km6 <- kmeans(credit[,c(-16,-17)],6,nstart=20)
+km6
+```
+
+
+```{r setup, include=FALSE}
+library(dplyr)
+credit<-read.csv('credit3 (2).csv')
+
+names(credit)
+
+credit$AMOUNT_REQUESTED <- as.numeric(credit$AMOUNT_REQUESTED)
+credit$NPV <- as.numeric(credit$NPV)
+credit$PROFITABLE <- ifelse(credit$NPV>0,1,0)
+credit$PROFITABLE <- factor(credit$PROFITABLE)
+#
+credit$CHK_ACCT_0 <- factor(ifelse(credit$CHK_ACCT==0,1,0))
+credit$CHK_ACCT_1 <- factor(ifelse(credit$CHK_ACCT==1,1,0))
+credit$CHK_ACCT_2 <- factor(ifelse(credit$CHK_ACCT==2,1,0))
+credit$CHK_ACCT_3 <- factor(ifelse(credit$CHK_ACCT==3,1,0))
+
+#
+credit$SAV_ACCT_0 <- factor(ifelse(credit$SAV_ACCT==0,1,0))
+credit$SAV_ACCT_1 <- factor(ifelse(credit$SAV_ACCT==1,1,0))
+credit$SAV_ACCT_2 <- factor(ifelse(credit$SAV_ACCT==2,1,0))
+credit$SAV_ACCT_3 <- factor(ifelse(credit$SAV_ACCT==3,1,0))
+credit$SAV_ACCT_4 <- factor(ifelse(credit$SAV_ACCT==4,1,0))
+#
+credit$HISTORY_0 <- factor(ifelse(credit$HISTORY==0,1,0))
+credit$HISTORY_1 <- factor(ifelse(credit$HISTORY==1,1,0))
+credit$HISTORY_2 <- factor(ifelse(credit$HISTORY==2,1,0))
+credit$HISTORY_3 <- factor(ifelse(credit$HISTORY==3,1,0))
+credit$HISTORY_4 <- factor(ifelse(credit$HISTORY==4,1,0))
+#
+credit$JOB_0 <- factor(ifelse(credit$JOB==0,1,0))
+credit$JOB_1 <- factor(ifelse(credit$JOB==1,1,0))
+credit$JOB_2 <- factor(ifelse(credit$JOB==2,1,0))
+credit$JOB_3 <- factor(ifelse(credit$JOB==3,1,0))
+#
+credit$EMPLOYMENT_0 <- factor(ifelse(credit$TYPE==0,1,0))
+credit$EMPLOYMENT_1 <- factor(ifelse(credit$TYPE==1,1,0))
+credit$EMPLOYMENT_2 <- factor(ifelse(credit$TYPE==2,1,0))
+credit$EMPLOYMENT_3 <- factor(ifelse(credit$TYPE==3,1,0))
+credit$EMPLOYMENT_4 <- factor(ifelse(credit$TYPE==4,1,0))
+
+credit$OWN_RES <- factor(credit$OWN_RES)
+#
+attach(credit)
+
+credit_Association<- credit%>%select(PROFITABLE,CHK_ACCT_0,CHK_ACCT_1,CHK_ACCT_2,CHK_ACCT_3,SAV_ACCT_0,SAV_ACCT_1,SAV_ACCT_2,SAV_ACCT_3,SAV_ACCT_4,HISTORY_0,HISTORY_1,HISTORY_2,HISTORY_3,HISTORY_4,JOB_0,JOB_1,JOB_2,JOB_3,EMPLOYMENT_0,EMPLOYMENT_1,EMPLOYMENT_2,EMPLOYMENT_3,EMPLOYMENT_4,OWN_RES)
+
+credit_Association
+```
+
+```{r setup}
+library(arules)
+library(arulesViz)
+
+rules <- apriori(credit_Association, parameter = list(supp = 0.1, conf = 0.8), 
+                 appearance = list(rhs = "PROFITABLE=1"))
+
+rules <- sort(rules, decreasing = TRUE, by = "lift")
+inspect(rules[1:20])
+```
+
+```{r setup}
+
+```
